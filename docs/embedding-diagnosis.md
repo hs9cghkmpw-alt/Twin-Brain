@@ -14,6 +14,7 @@ Obsidian に保存した第二の脳の情報を、embedding 検索で過去の�
 - Inbox: `C:\Users\user\Documents\第二の脳\00_Inbox`
 - Embedding model: `bge-m3:latest`
 - 比較用 embedding model: `nomic-embed-text:latest`
+- 新規比較 model: `nomic-embed-text-v2-moe`
 - LLM: `qwen2.5:1.5b-instruct`, `qwen2.5:7b-instruct`
 
 確認済みモデル一覧:
@@ -23,6 +24,12 @@ nomic-embed-text:latest    0a109f422b47    274 MB
 qwen2.5:1.5b-instruct      65ec06548149    986 MB
 bge-m3:latest              790764642607    1.2 GB
 qwen2.5:7b-instruct        845dbda0ea48    4.7 GB
+```
+
+追加インストール済み:
+
+```text
+nomic-embed-text-v2-moe    475.29M parameters    768 dimensions    context 512    F16
 ```
 
 ## 3. Obsidian テストノート
@@ -252,7 +259,42 @@ embedding length:
 
 → このテストでは、釣りテストが3位になったため、日本語検索用途では bge-m3 の方が良い結果だった。
 
-## 9. 現時点の判断
+## 9. nomic-embed-text-v2-moe 比較
+
+`nomic-embed-text-v2-moe` を追加インストールした。
+
+`ollama show nomic-embed-text-v2-moe` の結果:
+
+```text
+architecture        nomic-bert-moe
+parameters          475.29M
+context length      512
+embedding length    768
+quantization        F16
+Capabilities
+  embedding
+```
+
+日本語フレーズのモデル単体 sanity test:
+
+```text
+魚を釣る
+本を読む
+```
+
+結果:
+
+```text
+Embedding数: 2
+次元数: 768
+異なる要素数: 0 / 768
+```
+
+→ `nomic-embed-text-v2-moe` でも、この2つの日本語フレーズは完全に同一ベクトルになった。
+
+→ この時点では `bge-m3` と `nomic-embed-text` だけでなく、`nomic-embed-text-v2-moe` でも同じ現象が再現している。したがって、特定の1モデルだけの異常と断定せず、モデル・推論環境・入力処理を切り分けながら追加検証する。
+
+## 10. 現時点の判断
 
 ### 採用確定ではない
 
@@ -263,9 +305,10 @@ embedding length:
 1. bge-m3 は実検索で釣りノートを1位にできた。
 2. しかし日本語フレーズ間で完全に同一のembeddingが生成される異常な挙動がある。
 3. nomic-embed-text も日本語フレーズで同一ベクトルとなり、今回の実検索では bge-m3 より悪かった。
-4. したがって「bge-m3が壊れている」と単純に断定せず、日本語・多言語embeddingモデルを追加比較する必要がある。
+4. nomic-embed-text-v2-moe も `魚を釣る` / `本を読む` で 0 / 768 の差分となった。
+5. したがって、現象の原因を特定する前に特定モデルを採用確定しない。
 
-## 10. 重要な設計判断
+## 11. 重要な設計判断
 
 検索では、embedding の絶対スコアを固定閾値で判定しない。
 
@@ -283,7 +326,7 @@ Top-K候補取得
 回答
 ```
 
-## 11. 今後のTODO
+## 12. 今後のTODO
 
 - [ ] 日本語・多言語向け embedding モデルを追加比較
 - [ ] 同一質問セットでモデル別ベンチマーク
@@ -296,6 +339,6 @@ Top-K候補取得
 - [ ] セットアップ手順を別ドキュメントとして整理
 - [ ] 最終構成を再現可能な形にする
 
-## 12. 注意
+## 13. 注意
 
 このドキュメントは 2026-09-14 時点の途中経過。モデル選定・検索方式はまだ確定していない。
